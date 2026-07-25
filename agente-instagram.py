@@ -16,7 +16,7 @@ Uso:
   python3 agente-instagram.py --turno=manha
   python3 agente-instagram.py --mock          # sem chamar a API (teste)
 """
-import os, sys, json, datetime, urllib.request
+import os, sys, json, re, datetime, urllib.request
 from gerar_card import gerar_card
 from painel import build_index
 
@@ -73,7 +73,18 @@ def extrair_json(texto):
     i, f = t.find("{"), t.rfind("}")
     if i == -1 or f == -1:
         raise ValueError("Resposta sem JSON:\n" + texto[:800])
-    return json.loads(t[i:f+1])
+    bruto = t[i:f+1]
+    # 1) tentativa normal; 2) tolera controles nas strings; 3) remove controles crus
+    for tentar in (
+        lambda s: json.loads(s),
+        lambda s: json.loads(s, strict=False),
+        lambda s: json.loads(re.sub(r"[\x00-\x1f\x7f]", " ", s), strict=False),
+    ):
+        try:
+            return tentar(bruto)
+        except json.JSONDecodeError:
+            continue
+    return json.loads(re.sub(r"[\x00-\x1f\x7f]", " ", bruto), strict=False)
 
 def pesquisar(evitar):
     log("Pesquisando as notícias do direito do dia...")
@@ -174,4 +185,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
