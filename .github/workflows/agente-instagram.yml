@@ -1,0 +1,69 @@
+name: Agente de Instagram
+
+on:
+  schedule:
+    - cron: "0 11 * * *"   # 08h de Brasília — post da manhã
+    - cron: "0 17 * * *"   # 14h de Brasília — post da tarde
+  workflow_dispatch:
+    inputs:
+      turno:
+        description: "Turno do post"
+        required: true
+        default: "auto"
+        type: choice
+        options: [auto, manha, tarde]
+      mock:
+        description: "Gerar exemplo sem chamar a API"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: agente-instagram
+
+jobs:
+  gerar-post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TZ: America/Sao_Paulo
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: pip install pillow
+
+      - name: Gerar o post
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          ARGS=""
+          if [ "${{ inputs.turno }}" != "auto" ] && [ -n "${{ inputs.turno }}" ]; then
+            ARGS="$ARGS --turno=${{ inputs.turno }}"
+          fi
+          if [ "${{ inputs.mock }}" = "true" ]; then
+            ARGS="$ARGS --mock"
+          fi
+          python3 agente-instagram.py $ARGS
+
+      - name: Publicar no painel
+        if: always()
+        continue-on-error: true
+        run: |
+          git config user.name "Agente de Instagram"
+          git config user.email "actions@github.com"
+          git add docs
+          git diff --staged --quiet && exit 0
+          git commit -m "Post de $(date '+%d/%m/%Y %H:%M')"
+          for i in 1 2 3; do
+            git pull --rebase origin ${{ github.ref_name }} && git push origin HEAD:${{ github.ref_name }} && exit 0
+            echo "Tentativa $i falhou, repetindo..."; sleep 3
+          done
+          echo "Nao foi possivel publicar no painel nesta rodada."
