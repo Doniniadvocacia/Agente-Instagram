@@ -1,0 +1,83 @@
+"""Gera o index.html do painel de revisão, nas cores do escritório.
+Recebe a lista de posts (mais recente primeiro) e devolve o HTML completo."""
+import html, json
+
+CSS = """
+:root{--creme:#e6e4dc;--bege:#a68e6f;--vermelho:#660b0a;--bege-esc:#8a6f52}
+*{box-sizing:border-box}
+body{margin:0;background:var(--creme);color:var(--vermelho);
+ font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5}
+header{padding:22px 18px;border-bottom:2px solid var(--vermelho);display:flex;
+ align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header h1{font-family:Georgia,serif;font-size:20px;margin:0;font-weight:700}
+header .sub{color:var(--bege-esc);font-size:13px;margin-top:2px}
+.wrap{max-width:760px;margin:0 auto;padding:18px}
+.post{background:#fff;border:1px solid #dcd7cc;border-radius:12px;overflow:hidden;
+ margin-bottom:22px}
+.post img{width:100%;display:block;border-bottom:1px solid #eee}
+.meta{padding:12px 16px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tag{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bege-esc);
+ border:1px solid var(--bege);border-radius:999px;padding:2px 10px}
+.data{font-size:12px;color:var(--bege-esc)}
+.cap{margin:12px 16px;background:var(--creme);border-radius:8px;border:1px solid #e2ddd2;
+ padding:12px;white-space:pre-wrap;font-size:14px;color:#3a2b2b}
+.acts{display:flex;gap:10px;padding:0 16px 16px;flex-wrap:wrap}
+button,a.btn{font:inherit;font-size:14px;font-weight:500;border-radius:8px;padding:10px 16px;
+ cursor:pointer;border:1px solid var(--vermelho);text-decoration:none;text-align:center}
+.primary{background:var(--vermelho);color:#fff}
+.ghost{background:transparent;color:var(--vermelho)}
+.ok{background:var(--bege)!important;border-color:var(--bege)!important;color:#fff!important}
+.empty{padding:40px 16px;text-align:center;color:var(--bege-esc)}
+footer{padding:26px 18px;text-align:center;color:var(--bege-esc);font-size:12px}
+"""
+
+JS = """
+function copiar(id,btn){
+ const t=document.getElementById(id).innerText;
+ navigator.clipboard.writeText(t).then(()=>{
+  const o=btn.innerText;btn.innerText='Copiado!';btn.classList.add('ok');
+  setTimeout(()=>{btn.innerText=o;btn.classList.remove('ok')},1600);
+ });
+}
+"""
+
+def build_index(posts, gerado_em=""):
+    cards = []
+    for i, p in enumerate(posts):
+        cid = f"cap{i}"
+        cards.append(f"""
+    <article class="post">
+      <img src="{html.escape(p['img'])}" alt="Card do post" loading="lazy">
+      <div class="meta">
+        <span class="tag">{html.escape(p.get('editoria',''))}</span>
+        <span class="data">{html.escape(p.get('data',''))}</span>
+      </div>
+      <div class="cap" id="{cid}">{html.escape(p.get('legenda',''))}</div>
+      <div class="acts">
+        <button class="primary" onclick="copiar('{cid}',this)">Copiar legenda</button>
+        <a class="btn ghost" href="{html.escape(p['img'])}" download>Baixar imagem</a>
+      </div>
+    </article>""")
+
+    corpo = "\n".join(cards) if cards else '<div class="empty">Nenhum post gerado ainda. Volte após a próxima execução do agente.</div>'
+    sub = f"Atualizado em {html.escape(gerado_em)}" if gerado_em else ""
+
+    return f"""<!DOCTYPE html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Posts para revisão — Eduardo Donini Advocacia</title>
+<style>{CSS}</style></head><body>
+<header>
+  <div><h1>Posts para revisão</h1><div class="sub">{sub}</div></div>
+</header>
+<main class="wrap">
+{corpo}
+</main>
+<footer>Rascunhos gerados automaticamente · revise antes de publicar no Instagram</footer>
+<script>{JS}</script>
+</body></html>"""
+
+if __name__ == "__main__":
+    import sys
+    posts = json.load(open(sys.argv[1])) if len(sys.argv) > 1 else []
+    print(build_index(posts))
