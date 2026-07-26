@@ -6,7 +6,7 @@ A cada execução:
   1. PESQUISA  — busca notícias/julgados do dia dentro do escopo do escritório
   2. SELEÇÃO   — escolhe o de maior interesse para um post
   3. CARD      — gera a imagem 1080x1080 na identidade do escritório
-  4. LEGENDA   — redige a legenda (regras da OAB embutidas)
+  4. LEGENDA   — redige a legenda (regras da OAB + contato + hashtags)
   5. PAINEL    — publica no painel de revisão (GitHub Pages)
 
 Nunca publica no Instagram. Entrega rascunhos para revisão e postagem manual.
@@ -69,6 +69,14 @@ desses tribunais e do STJ têm prioridade sobre as de outras regiões e sobre no
 Se num dia não houver novidade forte nessas áreas/tribunais, escolha o melhor tema DISPONÍVEL
 DENTRO do escopo — nunca fora dele.
 """
+
+# Chamada de contato fixa, acrescentada ao final de toda legenda.
+# Registro sóbrio e informativo (sem captação nem promessa de resultado),
+# em conformidade com o Provimento 205/2021 e o Código de Ética da OAB.
+CONTATO = (
+    "Se ficou com dúvida ou deseja mais informações sobre o tema, os canais oficiais do escritório estão à "
+    "disposição, faça contato pelo e-mail contato@doniniadvocacia.com.br ou WhatsApp (51) 99707-2698, e agende hoje mesmo sua consulta."
+)
 
 def log(*a):
     print(f"[{datetime.datetime.now().isoformat(timespec='seconds')}]", *a)
@@ -140,7 +148,8 @@ Retorne exatamente esta estrutura JSON:
   "editoria": "área do direito, curta (ex.: Direito do Consumidor)",
   "manchete": "título curto e forte para o card, no máximo 9 palavras, sem ponto final",
   "apoio": "uma linha de apoio curta, no máximo 8 palavras",
-  "legenda": "legenda do Instagram: 3 a 5 frases explicando a notícia de forma clara e informativa, terminando com uma linha em branco e 4 a 6 hashtags relevantes em português",
+  "texto": "corpo da legenda: 3 a 5 frases explicando a notícia de forma clara e informativa. NÃO inclua hashtags nem dados de contato — eles são acrescentados automaticamente depois.",
+  "hashtags": "6 a 10 hashtags em português separadas por espaço: comece pelas ESPECÍFICAS do assunto (ex.: #revisionaldejuros, #pensaoalimenticia) e termine com ABRANGENTES que ampliem o alcance (ex.: #direito #advocacia #direitosdoconsumidor)",
   "fontes": ["url1", "url2"],
   "checagem": "uma frase confirmando que os dados vieram das buscas"
 }}"""
@@ -153,11 +162,11 @@ def post_mock():
         "editoria": "Direito do Consumidor",
         "manchete": "STJ amplia direito de arrependimento em compras online",
         "apoio": "Prazo passa a contar da efetiva entrega",
-        "legenda": ("O STJ firmou entendimento que amplia o direito de arrependimento nas compras "
-                    "feitas pela internet. Segundo a decisão, o prazo de sete dias passa a ser contado "
-                    "a partir da efetiva entrega do produto, e não da data da compra. A mudança reforça "
-                    "a proteção do consumidor em contratações a distância.\n\n"
-                    "#direito #consumidor #comprasonline #stj #advocacia"),
+        "texto": ("O STJ firmou entendimento que amplia o direito de arrependimento nas compras "
+                  "feitas pela internet. Segundo a decisão, o prazo de sete dias passa a ser contado "
+                  "a partir da efetiva entrega do produto, e não da data da compra. A mudança reforça "
+                  "a proteção do consumidor em contratações a distância."),
+        "hashtags": "#direitodoconsumidor #comprasonline #arrependimento #stj #direito #advocacia",
         "fontes": ["https://exemplo.gov.br/noticia"],
         "checagem": "post fictício de teste"
     }
@@ -169,6 +178,14 @@ def carregar_manifest():
         except Exception:
             return []
     return []
+
+def montar_legenda(post):
+    # Ordem final: texto explicativo → chamada de contato fixa → hashtags
+    partes = [post.get("texto", "").strip(), CONTATO]
+    hashtags = post.get("hashtags", "").strip()
+    if hashtags:
+        partes.append(hashtags)
+    return "\n\n".join(p for p in partes if p)
 
 def main():
     args = sys.argv[1:]
@@ -185,6 +202,7 @@ def main():
     evitar = [p["manchete"] for p in manifest[:12]]
 
     post = post_mock() if mock else pesquisar(evitar)
+    post["legenda"] = montar_legenda(post)
 
     agora = datetime.datetime.now()
     data_lbl = f"{agora.day} {MESES[agora.month-1]} {agora.year}, {turno_lbl}"
