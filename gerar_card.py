@@ -1,7 +1,7 @@
 """
 Gerador de card de Instagram — Eduardo Donini Advocacia.
 Recebe editoria, manchete e linha de apoio; devolve um PNG 1080x1080
-na identidade visual do escritório.
+na identidade visual do escritório, com a logomarca no rodapé.
 Módulo puro: nenhuma chamada de rede, para poder ser testado isolado.
 """
 import os
@@ -15,6 +15,7 @@ BEGE_ESCURO = (138, 111, 82)
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 FONT_DIR = os.environ.get("FONT_DIR", "/usr/share/fonts/truetype/liberation/")
+LOGO_PATH = os.path.join(BASE, "assets", "logo.png")
 
 def _font(name, size, fallback="/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf"):
     for path in (os.path.join(FONT_DIR, name), name):
@@ -91,11 +92,9 @@ def gerar_card(editoria, manchete, apoio, handle, data, out_path):
             d.text((LEFT, y), ln, font=fit, fill=BEGE_ESCURO)
             y += int(34 * 1.2)
 
-    # divisor + rodapé: perfil à esquerda, data à direita
+    # divisor + rodapé: apenas o perfil
     d.line([LEFT, 895, RIGHT, 895], fill=BEGE, width=2)
     d.text((LEFT, 935), handle, font=_font(SANS_BOLD, 30), fill=VERMELHO)
-    data_fnt = _font(SANS, 26)
-    d.text((RIGHT - d.textlength(data, font=data_fnt), 940), data, font=data_fnt, fill=BEGE_ESCURO)
 
     img.save(out_path)
     return {"path": out_path, "headline_px": size, "lines": len(lines)}
