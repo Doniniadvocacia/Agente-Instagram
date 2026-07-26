@@ -3,8 +3,8 @@
 AGENTE DE INSTAGRAM — Eduardo Donini Advocacia
 
 A cada execução:
-  1. PESQUISA  — busca as principais notícias do direito (em geral) do dia
-  2. SELEÇÃO   — escolhe a de maior interesse para um post
+  1. PESQUISA  — busca notícias/julgados do dia dentro do escopo do escritório
+  2. SELEÇÃO   — escolhe o de maior interesse para um post
   3. CARD      — gera a imagem 1080x1080 na identidade do escritório
   4. LEGENDA   — redige a legenda (regras da OAB embutidas)
   5. PAINEL    — publica no painel de revisão (GitHub Pages)
@@ -40,6 +40,32 @@ REGRAS INEGOCIÁVEIS para a legenda (conteúdo de escritório de advocacia):
    PROIBIDO: prometer resultado, captar clientela, tom mercantilista/sensacionalista,
    chamadas comerciais ("entre em contato", "contrate", "agende"), emojis em excesso.
 4. Tom impessoal, sem primeira pessoa do singular.
+"""
+
+ESCOPO = """
+PESQUISE SOMENTE DENTRO DESTAS ÁREAS. Ignore qualquer notícia fora delas:
+
+1. DIREITO DO CONSUMIDOR — com ênfase especial em: empréstimos bancários e consignados;
+   ações revisionais de juros; fraudes contratuais e golpes bancários; direito do passageiro
+   aéreo (atraso e cancelamento de voo, overbooking, extravio de bagagem) e problemas de
+   viagem e turismo.
+2. DIREITO EMPRESARIAL.
+3. DIREITO CIVIL.
+4. CONTRATOS DE SEGUROS — direito securitário: cobertura, sinistro, negativas de indenização,
+   ação regressiva.
+5. CONTRATOS EMPRESARIAIS — acordo de sócios, contrato social, cláusulas societárias,
+   compra e venda de participação, governança.
+6. DIREITO MÉDICO — SEMPRE SOB A PERSPECTIVA DO MÉDICO (pró-médico): defesa de médicos,
+   clínicas e hospitais; responsabilidade civil médica pela ótica da defesa; processos
+   ético-disciplinares no CRM; judicialização da saúde vista pelo profissional. NUNCA aborde
+   o tema pelo lado do paciente contra o médico, nem em tom crítico à classe médica.
+
+PRIORIDADE GEOGRÁFICA: prefira julgados e notícias do STJ e dos Tribunais de Justiça do
+Rio Grande do Sul (TJRS), Santa Catarina (TJSC), Paraná (TJPR) e São Paulo (TJSP). Decisões
+desses tribunais e do STJ têm prioridade sobre as de outras regiões e sobre notícias genéricas.
+
+Se num dia não houver novidade forte nessas áreas/tribunais, escolha o melhor tema DISPONÍVEL
+DENTRO do escopo — nunca fora dele.
 """
 
 def log(*a):
@@ -90,16 +116,19 @@ def pesquisar(evitar):
     log("Pesquisando as notícias do direito do dia...")
     hoje = datetime.datetime.now().strftime("%d/%m/%Y")
     system = f"""Você é editor de conteúdo jurídico de um escritório de advocacia brasileiro.
-Acompanha o noticiário do direito EM GERAL (não só uma área): STF, STJ, tribunais,
-novas leis, decisões relevantes, temas de consumidor, trabalho, civil, penal, tributário,
-família, empresarial. Seleciona o que é mais interessante e compartilhável para o público leigo
-e profissional no Instagram.
+Seleciona notícias e julgados DENTRO de um escopo temático específico e os transforma em
+posts de Instagram — informativos, sóbrios e úteis para o público leigo e profissional.
+{ESCOPO}
 {REGRAS}
 Responda SOMENTE com JSON válido, sem preâmbulo e sem cercas de código."""
 
     ja_feitos = "\n".join(f"- {t}" for t in evitar) if evitar else "(nenhum)"
-    prompt = f"""Hoje é {hoje}. Pesquise na web as principais notícias jurídicas do dia no Brasil
-e escolha UMA para virar um post de Instagram — a mais relevante e de maior apelo.
+    prompt = f"""Hoje é {hoje}. Pesquise na web notícias e julgados recentes DENTRO DO ESCOPO
+definido e escolha UM para virar um post de Instagram — o mais relevante e de maior apelo,
+priorizando o STJ e os tribunais do RS, SC, PR e SP.
+
+Faça buscas específicas por área e por tribunal (ex.: decisões recentes do TJRS sobre revisional
+de juros; STJ sobre passageiro aéreo; TJSP sobre acordo de sócios), em vez de uma busca genérica.
 
 NÃO repita nenhum destes temas já postados recentemente:
 {ja_feitos}
@@ -113,7 +142,7 @@ Retorne exatamente esta estrutura JSON:
   "fontes": ["url1", "url2"],
   "checagem": "uma frase confirmando que os dados vieram das buscas"
 }}"""
-    post = extrair_json(claude(system, prompt))
+    post = extrair_json(claude(system, prompt, buscas=12))
     log(f"  Tema: {post['editoria']} — {post['manchete']}")
     return post
 
