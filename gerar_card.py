@@ -90,12 +90,6 @@ def gerar_card(editoria, manchete, apoio, handle, data, out_path):
     d.text((LEFT, 928), handle, font=_font(SANS_BOLD, 30), fill=VERMELHO)
     d.text((LEFT, 972), data, font=_font(SANS, 24), fill=BEGE_ESCURO)
 
-    logo = Image.open(LOGO_PATH).convert("RGBA")
-    lw = 300
-    lh = int(logo.height * lw / logo.width)
-    logo = logo.resize((lw, lh), Image.LANCZOS)
-    img.paste(logo, (RIGHT - lw, 1008 - lh), logo)
-
     img.save(out_path)
     return {"path": out_path, "headline_px": size, "lines": len(lines)}
 
