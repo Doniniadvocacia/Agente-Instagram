@@ -1,7 +1,7 @@
 """
 Gerador de card de Instagram — Eduardo Donini Advocacia.
 Recebe editoria, manchete e linha de apoio; devolve um PNG 1080x1080
-na identidade visual do escritório, com a logomarca no rodapé.
+na identidade visual do escritório.
 Módulo puro: nenhuma chamada de rede, para poder ser testado isolado.
 """
 import os
@@ -15,7 +15,6 @@ BEGE_ESCURO = (138, 111, 82)
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 FONT_DIR = os.environ.get("FONT_DIR", "/usr/share/fonts/truetype/liberation/")
-LOGO_PATH = os.path.join(BASE, "assets", "logo.png")
 
 def _font(name, size, fallback="/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf"):
     for path in (os.path.join(FONT_DIR, name), name):
@@ -56,8 +55,14 @@ def gerar_card(editoria, manchete, apoio, handle, data, out_path):
     d = ImageDraw.Draw(img)
 
     d.rectangle([0, 0, 22, S], fill=VERMELHO)                       # faixa lateral
-    d.rectangle([LEFT, 150, LEFT + 16, 166], fill=VERMELHO)         # quadrado da editoria
-    _tracked(d, (LEFT + 34, 146), editoria.upper(), _font(SANS_BOLD, 26), BEGE, 3)
+
+    # nome do escritório no topo, com filete
+    _tracked(d, (LEFT, 150), "EDUARDO DONINI ADVOCACIA", _font(SANS, 34), VERMELHO, 6)
+    d.line([LEFT, 214, 610, 214], fill=BEGE, width=2)
+
+    # editoria
+    d.rectangle([LEFT, 322, LEFT + 16, 338], fill=VERMELHO)
+    _tracked(d, (LEFT + 34, 318), editoria.upper(), _font(SANS_BOLD, 26), BEGE, 3)
 
     # manchete: reduz o corpo até caber em no máximo 4 linhas
     size = 78
@@ -74,7 +79,7 @@ def gerar_card(editoria, manchete, apoio, handle, data, out_path):
         while ult and d.textlength(ult + "…", font=fnt) > (RIGHT - LEFT):
             ult = ult[:-1].rstrip()
         lines[3] = ult + "…"
-    y = 250
+    y = 430
     for ln in lines:
         d.text((LEFT, y), ln, font=fnt, fill=VERMELHO)
         y += int(size * 1.14)
@@ -86,9 +91,11 @@ def gerar_card(editoria, manchete, apoio, handle, data, out_path):
             d.text((LEFT, y), ln, font=fit, fill=BEGE_ESCURO)
             y += int(34 * 1.2)
 
-    d.line([LEFT, 892, RIGHT, 892], fill=BEGE, width=2)             # divisor
-    d.text((LEFT, 928), handle, font=_font(SANS_BOLD, 30), fill=VERMELHO)
-    d.text((LEFT, 972), data, font=_font(SANS, 24), fill=BEGE_ESCURO)
+    # divisor + rodapé: perfil à esquerda, data à direita
+    d.line([LEFT, 895, RIGHT, 895], fill=BEGE, width=2)
+    d.text((LEFT, 935), handle, font=_font(SANS_BOLD, 30), fill=VERMELHO)
+    data_fnt = _font(SANS, 26)
+    d.text((RIGHT - d.textlength(data, font=data_fnt), 940), data, font=data_fnt, fill=BEGE_ESCURO)
 
     img.save(out_path)
     return {"path": out_path, "headline_px": size, "lines": len(lines)}
