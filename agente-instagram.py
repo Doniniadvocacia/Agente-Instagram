@@ -59,6 +59,8 @@ PESQUISE SOMENTE DENTRO DESTAS ÁREAS. Ignore qualquer notícia fora delas:
    clínicas e hospitais; responsabilidade civil médica pela ótica da defesa; processos
    ético-disciplinares no CRM; judicialização da saúde vista pelo profissional. NUNCA aborde
    o tema pelo lado do paciente contra o médico, nem em tom crítico à classe médica.
+7. DIREITO DE FAMÍLIA — divórcio, guarda e convivência, pensão alimentícia, partilha de bens,
+   união estável, planejamento sucessório e inventário, alienação parental.
 
 PRIORIDADE GEOGRÁFICA: prefira julgados e notícias do STJ e dos Tribunais de Justiça do
 Rio Grande do Sul (TJRS), Santa Catarina (TJSC), Paraná (TJPR) e São Paulo (TJSP). Decisões
