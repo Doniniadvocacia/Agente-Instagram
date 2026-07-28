@@ -6,7 +6,7 @@ A cada execução:
   1. PESQUISA  — busca notícias/julgados do dia dentro do escopo do escritório
   2. SELEÇÃO   — escolhe o de maior interesse para um post
   3. CARD      — gera a imagem 1080x1080 na identidade do escritório
-  4. LEGENDA   — redige a legenda (regras da OAB + contato + hashtags)
+  4. LEGENDA   — redige a legenda (regras da OAB + fonte + contato + hashtags)
   5. PAINEL    — publica no painel de revisão (GitHub Pages)
 
 Nunca publica no Instagram. Entrega rascunhos para revisão e postagem manual.
@@ -149,7 +149,8 @@ Retorne exatamente esta estrutura JSON:
   "manchete": "título curto e forte para o card, no máximo 9 palavras, sem ponto final",
   "apoio": "uma linha de apoio curta, no máximo 8 palavras",
   "texto": "corpo da legenda: 3 a 5 frases explicando a notícia de forma clara e informativa. NÃO inclua hashtags nem dados de contato — eles são acrescentados automaticamente depois.",
-  "hashtags": "6 a 10 hashtags em português separadas por espaço: comece pelas ESPECÍFICAS do assunto (ex.: #revisionaldejuros, #pensaoalimenticia) e termine com ABRANGENTES que ampliem o alcance (ex.: #direito #advocacia #direitosdoconsumidor)",
+  "hashtags": "6 a 12 hashtags em português separadas por espaço: comece pelas ESPECÍFICAS do assunto (ex.: #revisionaldejuros, #pensaoalimenticia) e termine com ABRANGENTES que ampliem o alcance (ex.: #direito #advocacia #direitosdoconsumidor)",
+  "fonte": "referência curta da origem, para citar na legenda: tribunal + nº do processo, tema repetitivo ou súmula quando houver (ex.: 'STJ, Tema 1.282' ou 'STJ, REsp 2.092.308/SP'); se a base for matéria de portal, cite o veículo (ex.: 'Migalhas'). Use SOMENTE o que você confirmou nas buscas.",
   "fontes": ["url1", "url2"],
   "checagem": "uma frase confirmando que os dados vieram das buscas"
 }}"""
@@ -167,6 +168,7 @@ def post_mock():
                   "a partir da efetiva entrega do produto, e não da data da compra. A mudança reforça "
                   "a proteção do consumidor em contratações a distância."),
         "hashtags": "#direitodoconsumidor #comprasonline #arrependimento #stj #direito #advocacia",
+        "fonte": "STJ, REsp 1.234.567/SP",
         "fontes": ["https://exemplo.gov.br/noticia"],
         "checagem": "post fictício de teste"
     }
@@ -180,8 +182,12 @@ def carregar_manifest():
     return []
 
 def montar_legenda(post):
-    # Ordem final: texto explicativo → chamada de contato fixa → hashtags
-    partes = [post.get("texto", "").strip(), CONTATO]
+    # Ordem final: texto → fonte → chamada de contato fixa → hashtags
+    partes = [post.get("texto", "").strip()]
+    fonte = post.get("fonte", "").strip()
+    if fonte:
+        partes.append(f"Fonte: {fonte}")
+    partes.append(CONTATO)
     hashtags = post.get("hashtags", "").strip()
     if hashtags:
         partes.append(hashtags)
