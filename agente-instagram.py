@@ -16,7 +16,7 @@ Uso:
   python3 agente-instagram.py --turno=manha
   python3 agente-instagram.py --mock          # sem chamar a API (teste)
 """
-import os, sys, json, re, datetime, urllib.request
+import os, sys, json, re, time, datetime, urllib.request, urllib.error
 from gerar_card import gerar_card
 from painel import build_index
 
@@ -99,8 +99,30 @@ def claude(system, prompt, buscas=8, max_tokens=6000):
         data=json.dumps(body).encode("utf-8"),
         headers={"x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01",
                  "content-type": "application/json"})
-    with urllib.request.urlopen(req, timeout=180) as r:
-        data = json.loads(r.read())
+
+    # A API pode responder 429 (limite) ou 5xx/529 (sobrecarga momentânea).
+    # Esses erros são passageiros — tentamos algumas vezes, com pausa crescente.
+    tentativas = 5
+    for n in range(1, tentativas + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=180) as r:
+                data = json.loads(r.read())
+            break
+        except urllib.error.HTTPError as e:
+            transitorio = e.code in (429, 500, 502, 503, 504, 529)
+            if transitorio and n < tentativas:
+                espera = min(60, 5 * (2 ** (n - 1)))   # 5s, 10s, 20s, 40s, 60s
+                log(f"  API respondeu {e.code} (sobrecarga). Tentativa {n}/{tentativas} — aguardando {espera}s...")
+                time.sleep(espera)
+                continue
+            raise
+        except urllib.error.URLError as e:
+            if n < tentativas:
+                log(f"  Falha de conexão ({e.reason}). Tentativa {n}/{tentativas} — aguardando 10s...")
+                time.sleep(10)
+                continue
+            raise
+
     texto = "\n".join(b["text"] for b in data.get("content", []) if b.get("type") == "text").strip()
     return texto
 
