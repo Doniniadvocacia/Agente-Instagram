@@ -2,8 +2,14 @@ name: Agente de Instagram
 
 on:
   schedule:
-    - cron: "0 11 * * *"   # 08h de Brasília — post da manhã
-    - cron: "0 17 * * *"   # 14h de Brasília — post da tarde
+    # Manhã (~8h de Brasília = 11h UTC): tenta às 8h07 e, como rede, de novo às 8h23.
+    - cron: "7 11 * * *"
+    - cron: "23 11 * * *"
+    # Tarde (~14h de Brasília = 17h UTC): tenta às 14h07 e, como rede, de novo às 14h23.
+    - cron: "7 17 * * *"
+    - cron: "23 17 * * *"
+
+  # Permite disparar manualmente pela aba "Actions" do GitHub.
   workflow_dispatch:
     inputs:
       turno:
