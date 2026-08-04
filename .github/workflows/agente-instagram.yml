@@ -65,30 +65,36 @@ jobs:
       - name: Publicar no painel
         if: always()
         continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "--- Conteúdo de docs/ antes de publicar ---"
           ls -la docs docs/posts || true
           echo "-------------------------------------------"
-          git config user.name "Agente de Instagram"
-          git config user.email "actions@github.com"
-          # desliga rebase automático neste repositório (era o que atropelava a publicação)
-          git config pull.rebase false
-          git config rebase.autoStash false
-
-          # guarda os arquivos que ESTA rodada gerou
-          mkdir -p /tmp/novo
-          cp -r docs/. /tmp/novo/
 
           BRANCH="${{ github.ref_name }}"
+          REPO="${{ github.repository }}"
+
+          # 1) guarda o que ESTA rodada gerou, fora da pasta do repositório
+          rm -rf /tmp/novo && mkdir -p /tmp/novo
+          cp -r docs/. /tmp/novo/
+
           for i in 1 2 3 4 5; do
-            # parte sempre da versão mais recente do repositório, sem mesclar
-            git fetch origin "$BRANCH"
-            git reset --hard "origin/$BRANCH"
-            git clean -fd docs
+            # 2) baixa uma cópia LIMPA e recente do repositório, do zero.
+            #    clone não faz merge nem rebase — não há como dar conflito.
+            rm -rf /tmp/repo
+            git clone --depth 1 --branch "$BRANCH" \
+              "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" /tmp/repo
 
-            # recoloca por cima o que esta rodada gerou (nossa versão vence)
-            cp -rf /tmp/novo/. docs/
+            # 3) substitui a pasta docs pela versão que esta rodada gerou
+            rm -rf /tmp/repo/docs
+            mkdir -p /tmp/repo/docs
+            cp -r /tmp/novo/. /tmp/repo/docs/
 
+            # 4) commita e envia a partir dessa cópia limpa
+            cd /tmp/repo
+            git config user.name "Agente de Instagram"
+            git config user.email "actions@github.com"
             git add docs
             if git diff --staged --quiet; then
               echo "Nada novo para publicar."
@@ -100,7 +106,8 @@ jobs:
               echo "Publicado no painel."
               exit 0
             fi
-            echo "Remoto avançou. Tentativa $i — repetindo do zero..."
+            echo "Remoto avançou. Tentativa $i — baixando de novo do zero..."
+            cd - >/dev/null
             sleep 3
           done
           echo "Nao foi possivel publicar no painel nesta rodada (o post já está salvo no repositório)."
