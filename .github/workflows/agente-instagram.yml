@@ -77,8 +77,16 @@ jobs:
             exit 0
           fi
           git commit -m "Post de $(date '+%d/%m/%Y %H:%M')"
-          for i in 1 2 3; do
-            git pull --rebase origin ${{ github.ref_name }} && git push origin HEAD:${{ github.ref_name }} && echo "Publicado no painel." && exit 0
-            echo "Tentativa $i falhou, repetindo..."; sleep 3
+          for i in 1 2 3 4 5; do
+            git fetch origin ${{ github.ref_name }}
+            # Junta o que houver de novo no remoto; em conflito nos arquivos que
+            # regeneramos (index.html, posts.json, imagem), a NOSSA versão vence.
+            git merge -X ours --no-edit origin/${{ github.ref_name }} || git merge --abort
+            if git push origin HEAD:${{ github.ref_name }}; then
+              echo "Publicado no painel."
+              exit 0
+            fi
+            echo "Remoto avançou de novo. Tentativa $i — reconciliando..."
+            sleep 3
           done
-          echo "Nao foi possivel publicar no painel nesta rodada."
+          echo "Nao foi possivel publicar no painel nesta rodada (o post já está salvo no repositório)."
