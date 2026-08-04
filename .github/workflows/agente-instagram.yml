@@ -71,22 +71,36 @@ jobs:
           echo "-------------------------------------------"
           git config user.name "Agente de Instagram"
           git config user.email "actions@github.com"
-          git add docs
-          if git diff --staged --quiet; then
-            echo "Nada novo para publicar (o post desta rodada já existia)."
-            exit 0
-          fi
-          git commit -m "Post de $(date '+%d/%m/%Y %H:%M')"
+          # desliga rebase automático neste repositório (era o que atropelava a publicação)
+          git config pull.rebase false
+          git config rebase.autoStash false
+
+          # guarda os arquivos que ESTA rodada gerou
+          mkdir -p /tmp/novo
+          cp -r docs/. /tmp/novo/
+
+          BRANCH="${{ github.ref_name }}"
           for i in 1 2 3 4 5; do
-            git fetch origin ${{ github.ref_name }}
-            # Junta o que houver de novo no remoto; em conflito nos arquivos que
-            # regeneramos (index.html, posts.json, imagem), a NOSSA versão vence.
-            git merge -X ours --no-edit origin/${{ github.ref_name }} || git merge --abort
-            if git push origin HEAD:${{ github.ref_name }}; then
+            # parte sempre da versão mais recente do repositório, sem mesclar
+            git fetch origin "$BRANCH"
+            git reset --hard "origin/$BRANCH"
+            git clean -fd docs
+
+            # recoloca por cima o que esta rodada gerou (nossa versão vence)
+            cp -rf /tmp/novo/. docs/
+
+            git add docs
+            if git diff --staged --quiet; then
+              echo "Nada novo para publicar."
+              exit 0
+            fi
+            git commit -m "Post de $(date '+%d/%m/%Y %H:%M')"
+
+            if git push origin "HEAD:$BRANCH"; then
               echo "Publicado no painel."
               exit 0
             fi
-            echo "Remoto avançou de novo. Tentativa $i — reconciliando..."
+            echo "Remoto avançou. Tentativa $i — repetindo do zero..."
             sleep 3
           done
           echo "Nao foi possivel publicar no painel nesta rodada (o post já está salvo no repositório)."
